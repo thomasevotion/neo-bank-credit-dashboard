@@ -14,6 +14,8 @@ st.set_page_config(
 
 # Configuration technique
 API_URL = os.getenv('API_URL', 'https://neo-bank-credit-api.onrender.com/predict')
+API_KEY = os.getenv('API_KEY', 'secret-token-12345') # Clé partagée
+
 
 POSSIBLE_PATHS = [
     "application_train_sample.csv",
@@ -84,9 +86,13 @@ def get_prediction(client_data):
         "DAYS_EMPLOYED": float(client_data['DAYS_EMPLOYED'])
     }
     try:
-        response = requests.post(API_URL, json=data, timeout=10) # Timeout pour éviter le blocage infini
+        headers = {"access_token": API_KEY}
+        response = requests.post(API_URL, json=data, headers=headers, timeout=10)
         if response.status_code == 200:
             return response.json()
+        elif response.status_code == 403:
+             st.error("Accès refusé : Clé API incorrecte.")
+             return None
         else:
             st.error(f"Erreur serveur ({response.status_code}) : {response.text}")
             return None
@@ -115,9 +121,26 @@ else:
     
     # Sidebar : Sélection du dossier
     st.sidebar.header("Dossier Client")
-    client_id = st.sidebar.selectbox("Numéro de dossier", df['SK_ID_CURR'].unique())
+    
+    # Masquage partiel des IDs pour la liste (RGPD)
+    client_ids = df['SK_ID_CURR'].unique()
+    # On crée un mapping pour retrouver le vrai ID
+    id_mapping = {f"Dossier n°{str(id)[:3]}***": id for id in client_ids}
+    
+    selected_label = st.sidebar.selectbox("Sélectionner un dossier anonymisé", list(id_mapping.keys()))
+    client_id = id_mapping[selected_label]
+    
     st.sidebar.markdown("---")
-    st.sidebar.info("ℹ️ **RGPD** : Les données affichées sont pseudonymisées. Durée de conservation : 3 ans.")
+    st.sidebar.warning("🔒 **Mode Sécurisé (RGPD)**")
+    st.sidebar.info(
+        """
+        **Données strictement confidentielles.**
+        
+        - Identifiants pseudonymisés.
+        - Durée de rétention : 3 ans.
+        - Droit d'accès : Contacter DPO.
+        """
+    )
 
     # Données client
     client_data = df[df['SK_ID_CURR'] == client_id].iloc[0]
