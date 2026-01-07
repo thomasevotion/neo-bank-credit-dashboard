@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # Configuration technique
-API_URL = os.getenv('API_URL', 'http://127.0.0.1:8000/predict')
+API_URL = os.getenv('API_URL', 'https://neo-bank-credit-api.onrender.com/predict')
 
 POSSIBLE_PATHS = [
     "application_train_sample.csv",
